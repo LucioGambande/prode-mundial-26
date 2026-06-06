@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSessionFromRequest } from "@/lib/auth";
 
-const PUBLIC_PATHS = ["/login"];
+const PUBLIC_PATHS = ["/", "/login", "/api/login"];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const session = getSessionFromRequest(request);
+  const session = await getSessionFromRequest(request);
   const isPublic = PUBLIC_PATHS.some((p) => pathname === p);
 
   if (pathname === "/login" && session) {
@@ -43,3 +43,5 @@ export const config = {
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
+
+// /api/login must work without session

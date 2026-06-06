@@ -4,43 +4,9 @@ import { redirect } from "next/navigation";
 import {
   getSession,
   hashPassword,
-  sessionFromUser,
   setSessionCookie,
-  verifyPassword,
 } from "@/lib/auth";
 import { getDb } from "@/lib/supabase";
-
-export async function loginAction(
-  _prev: { error?: string } | null,
-  formData: FormData,
-) {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const password = String(formData.get("password") ?? "");
-  const redirectTo = String(formData.get("redirect") ?? "/");
-
-  if (!email || !password) {
-    return { error: "Email y contraseña requeridos" };
-  }
-
-  const db = getDb();
-  const { data: user, error } = await db
-    .from("users")
-    .select("*")
-    .eq("email", email)
-    .maybeSingle();
-
-  if (error || !user || !verifyPassword(password, user.password_hash)) {
-    return { error: "Email o contraseña incorrectos" };
-  }
-
-  await setSessionCookie(sessionFromUser(user));
-
-  if (user.must_change_password) {
-    redirect("/cambiar-password");
-  }
-
-  redirect(redirectTo.startsWith("/") ? redirectTo : "/");
-}
 
 export async function logoutAction() {
   const { clearSessionCookie } = await import("@/lib/auth");

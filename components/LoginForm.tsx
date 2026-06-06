@@ -1,22 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import { useActionState } from "react";
-import { loginAction } from "@/lib/actions/auth";
-
-export default function LoginForm({ redirect }: { redirect: string }) {
-  const [state, formAction, pending] = useActionState(loginAction, null);
-
+export default function LoginForm({
+  redirect,
+  error,
+}: {
+  redirect: string;
+  error?: string;
+}) {
   return (
     <form
-      action={formAction}
+      action="/api/login"
+      method="POST"
       className="mx-auto w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm"
     >
       <input type="hidden" name="redirect" value={redirect} />
       <h1 className="text-2xl font-bold text-emerald-900">Entrar al prode</h1>
-      <p className="mt-2 text-sm text-zinc-500">
-        Ernesto: ernloza@gmail.com
-      </p>
+      <p className="mt-2 text-sm text-zinc-500">Email y contraseña</p>
 
       <div className="mt-6 space-y-4">
         <input
@@ -35,14 +34,13 @@ export default function LoginForm({ redirect }: { redirect: string }) {
         />
       </div>
 
-      {state?.error && <p className="mt-4 text-sm text-red-600">{state.error}</p>}
+      {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
 
       <button
         type="submit"
-        disabled={pending}
-        className="mt-6 w-full rounded-full bg-emerald-600 py-3 font-medium text-white disabled:bg-zinc-300"
+        className="mt-6 w-full rounded-full bg-emerald-600 py-3 font-medium text-white"
       >
-        {pending ? "Entrando..." : "Entrar"}
+        Entrar
       </button>
     </form>
   );

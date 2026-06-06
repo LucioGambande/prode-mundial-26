@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
 
@@ -25,10 +25,10 @@ export interface DbUser {
   created_at: string;
 }
 
-function jwtSecret() {
+function getSecretKey() {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error("JWT_SECRET no configurado");
-  return secret;
+  return new TextEncoder().encode(secret);
 }
 
 export function hashPassword(password: string) {
@@ -39,19 +39,25 @@ export function verifyPassword(password: string, hash: string) {
   return bcrypt.compareSync(password, hash);
 }
 
-export function createToken(payload: SessionPayload) {
-  return jwt.sign(payload, jwtSecret(), { expiresIn: "30d" });
+export async function createToken(payload: SessionPayload) {
+  return new SignJWT({ ...payload })
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime("30d")
+    .sign(getSecretKey());
 }
 
-export function verifyToken(token: string): SessionPayload | null {
+export async function verifyToken(token: string): Promise<SessionPayload | null> {
   try {
-    return jwt.verify(token, jwtSecret()) as SessionPayload;
+    const { payload } = await jwtVerify(token, getSecretKey());
+    return payload as unknown as SessionPayload;
   } catch {
     return null;
   }
 }
 
-export function getSessionFromRequest(request: NextRequest): SessionPayload | null {
+export async function getSessionFromRequest(
+  request: NextRequest,
+): Promise<SessionPayload | null> {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   if (!token) return null;
   return verifyToken(token);
@@ -66,7 +72,8 @@ export async function getSession(): Promise<SessionPayload | null> {
 
 export async function setSessionCookie(payload: SessionPayload) {
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, createToken(payload), {
+  const token = await createToken(payload);
+  cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -89,7 +96,9 @@ export function initials(name: string) {
     .slice(0, 2);
 }
 
-export function sessionFromUser(user: Pick<DbUser, "id" | "email" | "name" | "role" | "must_change_password">): SessionPayload {
+export function sessionFromUser(
+  user: Pick<DbUser, "id" | "email" | "name" | "role" | "must_change_password">,
+): SessionPayload {
   return {
     userId: user.id,
     email: user.email,
