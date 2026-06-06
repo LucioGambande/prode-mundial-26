@@ -2,10 +2,8 @@
 
 create extension if not exists "pgcrypto";
 
--- Limpiar schema anterior (si existía Supabase Auth)
+-- Limpiar schema anterior (tablas primero → borra policies que dependen de is_admin)
 drop trigger if exists on_auth_user_created on auth.users;
-drop function if exists public.handle_new_user();
-drop function if exists public.is_admin();
 
 drop table if exists champion_predictions cascade;
 drop table if exists third_place_predictions cascade;
@@ -17,6 +15,11 @@ drop table if exists tournament_settings cascade;
 drop table if exists teams cascade;
 drop table if exists profiles cascade;
 drop table if exists users cascade;
+
+drop function if exists public.handle_new_user() cascade;
+drop function if exists public.is_admin() cascade;
+drop function if exists public.match_is_open(public.matches) cascade;
+drop function if exists public.bracket_is_open() cascade;
 
 drop type if exists user_role cascade;
 drop type if exists match_phase cascade;
@@ -37,6 +40,8 @@ create table users (
   must_change_password boolean not null default true,
   created_at timestamptz not null default now()
 );
+
+alter table users disable row level security;
 
 create table teams (
   id uuid primary key default gen_random_uuid(),
@@ -123,7 +128,7 @@ alter table tournament_settings disable row level security;
 insert into users (email, name, password_hash, role, must_change_password) values (
   'ernloza@gmail.com',
   'Ernesto',
-  '$2b$10$uGUa7WBOwLUOR.yxPHhStei09mTEuJ3IrXht6LHfzCy149YyzVfAG',
+  '$2b$10$IwF3U0kwKFhQ1hk3MVSyleJuhvubUv5AIoD9xZf1AzndhGaABtADG',
   'admin',
   false
 );
