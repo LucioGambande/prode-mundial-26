@@ -1,8 +1,41 @@
-import { type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase-middleware";
+import { NextResponse, type NextRequest } from "next/server";
+import { getSessionFromRequest } from "@/lib/auth";
 
-export async function middleware(request: NextRequest) {
-  return updateSession(request);
+const PUBLIC_PATHS = ["/login"];
+
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const session = getSessionFromRequest(request);
+  const isPublic = PUBLIC_PATHS.some((p) => pathname === p);
+
+  if (pathname === "/login" && session) {
+    const dest = session.mustChangePassword ? "/cambiar-password" : "/";
+    return NextResponse.redirect(new URL(dest, request.url));
+  }
+
+  if (!isPublic && !session) {
+    const login = new URL("/login", request.url);
+    login.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(login);
+  }
+
+  if (
+    session?.mustChangePassword &&
+    pathname !== "/cambiar-password" &&
+    pathname !== "/api/logout"
+  ) {
+    return NextResponse.redirect(new URL("/cambiar-password", request.url));
+  }
+
+  if (pathname === "/cambiar-password" && session && !session.mustChangePassword) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  if (pathname.startsWith("/admin") && session?.role !== "admin") {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {

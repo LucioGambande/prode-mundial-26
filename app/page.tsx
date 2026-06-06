@@ -1,14 +1,15 @@
 import Nav from "@/components/Nav";
 import LeaderboardTable from "@/components/LeaderboardTable";
 import { buildLeaderboard } from "@/lib/leaderboard";
-import { createClient, getCurrentProfile } from "@/lib/supabase-server";
+import { getCurrentUser } from "@/lib/session";
+import { getDb } from "@/lib/supabase";
 
 export default async function HomePage() {
-  const supabase = await createClient();
-  const profile = await getCurrentProfile();
+  const user = await getCurrentUser();
+  const db = getDb();
 
   const [
-    { data: profiles },
+    { data: users },
     { data: matches },
     { data: predictions },
     { data: bracketPredictions },
@@ -17,18 +18,18 @@ export default async function HomePage() {
     { data: groupStandings },
     { data: settings },
   ] = await Promise.all([
-    supabase.from("profiles").select("*").order("name"),
-    supabase.from("matches").select("*"),
-    supabase.from("predictions").select("*"),
-    supabase.from("bracket_predictions").select("*"),
-    supabase.from("third_place_predictions").select("*"),
-    supabase.from("champion_predictions").select("*"),
-    supabase.from("group_standings").select("*"),
-    supabase.from("tournament_settings").select("*").eq("id", 1).single(),
+    db.from("users").select("*").order("name"),
+    db.from("matches").select("*"),
+    db.from("predictions").select("*"),
+    db.from("bracket_predictions").select("*"),
+    db.from("third_place_predictions").select("*"),
+    db.from("champion_predictions").select("*"),
+    db.from("group_standings").select("*"),
+    db.from("tournament_settings").select("*").eq("id", 1).single(),
   ]);
 
   const entries = buildLeaderboard(
-    profiles ?? [],
+    users ?? [],
     matches ?? [],
     predictions ?? [],
     bracketPredictions ?? [],
@@ -41,11 +42,10 @@ export default async function HomePage() {
 
   return (
     <>
-      <Nav userName={profile?.name} isAdmin={profile?.is_admin} />
+      <Nav user={user} />
       <main className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-6">
           <h2 className="text-3xl font-bold text-emerald-950">Tabla de posiciones</h2>
-          <p className="text-zinc-600">Pública · se actualiza con cada resultado</p>
         </div>
         <LeaderboardTable entries={entries} />
       </main>

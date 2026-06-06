@@ -1,21 +1,40 @@
--- Prode Mundial 2026 — pegar en Supabase SQL Editor
+-- Prode Mundial 2026 — Auth propio (JWT + bcrypt). Supabase = solo DB, RLS off.
 
 create extension if not exists "pgcrypto";
 
--- Enums
+-- Limpiar schema anterior (si existía Supabase Auth)
+drop trigger if exists on_auth_user_created on auth.users;
+drop function if exists public.handle_new_user();
+drop function if exists public.is_admin();
+
+drop table if exists champion_predictions cascade;
+drop table if exists third_place_predictions cascade;
+drop table if exists bracket_predictions cascade;
+drop table if exists predictions cascade;
+drop table if exists matches cascade;
+drop table if exists group_standings cascade;
+drop table if exists tournament_settings cascade;
+drop table if exists teams cascade;
+drop table if exists profiles cascade;
+drop table if exists users cascade;
+
+drop type if exists user_role cascade;
+drop type if exists match_phase cascade;
+drop type if exists match_status cascade;
+
+create type user_role as enum ('admin', 'player');
 create type match_phase as enum (
   'group', 'round_of_32', 'round_of_16', 'quarter', 'semi', 'final'
 );
-
 create type match_status as enum ('upcoming', 'locked', 'finished');
 
--- Tables
-create table profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
+create table users (
+  id uuid primary key default gen_random_uuid(),
   email text not null unique,
   name text not null,
-  avatar_initials text not null,
-  is_admin boolean not null default false,
+  password_hash text not null,
+  role user_role not null default 'player',
+  must_change_password boolean not null default true,
   created_at timestamptz not null default now()
 );
 
@@ -43,7 +62,7 @@ create table matches (
 
 create table predictions (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
   match_id uuid not null references matches(id) on delete cascade,
   home_score int not null check (home_score >= 0),
   away_score int not null check (away_score >= 0),
@@ -54,7 +73,7 @@ create table predictions (
 
 create table bracket_predictions (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
   group_name text not null,
   predicted_first_id uuid not null references teams(id),
   predicted_second_id uuid not null references teams(id),
@@ -63,19 +82,18 @@ create table bracket_predictions (
 
 create table third_place_predictions (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
   team_ids uuid[] not null,
   unique (user_id)
 );
 
 create table champion_predictions (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
   team_id uuid not null references teams(id),
   unique (user_id)
 );
 
--- Resultados oficiales para puntaje de bracket/campeón
 create table group_standings (
   group_name text primary key,
   first_team_id uuid references teams(id),
@@ -90,133 +108,26 @@ create table tournament_settings (
 
 insert into tournament_settings (id) values (1);
 
--- Auto profile on signup
-create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer set search_path = public
-as $$
-begin
-  insert into public.profiles (id, email, name, avatar_initials, is_admin)
-  values (
-    new.id,
-    new.email,
-    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
-    coalesce(new.raw_user_meta_data->>'avatar_initials', upper(left(split_part(new.email, '@', 1), 2))),
-    coalesce((new.raw_user_meta_data->>'is_admin')::boolean, false)
-  );
-  return new;
-end;
-$$;
+-- RLS desactivado: acceso controlado server-side con JWT
+alter table users disable row level security;
+alter table teams disable row level security;
+alter table matches disable row level security;
+alter table predictions disable row level security;
+alter table bracket_predictions disable row level security;
+alter table third_place_predictions disable row level security;
+alter table champion_predictions disable row level security;
+alter table group_standings disable row level security;
+alter table tournament_settings disable row level security;
 
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function public.handle_new_user();
+-- Admin inicial: ernloza@gmail.com / Admin2026!
+insert into users (email, name, password_hash, role, must_change_password) values (
+  'ernloza@gmail.com',
+  'Ernesto',
+  '$2b$10$uGUa7WBOwLUOR.yxPHhStei09mTEuJ3IrXht6LHfzCy149YyzVfAG',
+  'admin',
+  false
+);
 
--- Lock helper
-create or replace function public.is_admin()
-returns boolean
-language sql
-stable
-as $$
-  select exists (
-    select 1 from profiles where id = auth.uid() and is_admin = true
-  );
-$$;
-
-create or replace function public.match_is_open(match_row matches)
-returns boolean
-language sql
-stable
-as $$
-  select match_row.status = 'upcoming'
-    and now() < (match_row.match_date - interval '1 hour');
-$$;
-
-create or replace function public.bracket_is_open()
-returns boolean
-language sql
-stable
-as $$
-  select now() < timestamptz '2026-06-11 03:00:00+00'; -- 11 jun 00:00 ART
-$$;
-
--- RLS
-alter table profiles enable row level security;
-alter table teams enable row level security;
-alter table matches enable row level security;
-alter table predictions enable row level security;
-alter table bracket_predictions enable row level security;
-alter table third_place_predictions enable row level security;
-alter table champion_predictions enable row level security;
-alter table group_standings enable row level security;
-alter table tournament_settings enable row level security;
-
--- Profiles
-create policy "profiles_select_all" on profiles for select using (true);
-create policy "profiles_update_own" on profiles for update using (auth.uid() = id);
-
--- Teams
-create policy "teams_select_all" on teams for select using (true);
-create policy "teams_admin_write" on teams for all using (public.is_admin());
-
--- Matches
-create policy "matches_select_all" on matches for select using (true);
-create policy "matches_admin_insert" on matches for insert with check (public.is_admin());
-create policy "matches_admin_update" on matches for update using (public.is_admin());
-create policy "matches_admin_delete" on matches for delete using (public.is_admin());
-
--- Predictions
-create policy "predictions_select_all" on predictions for select using (true);
-create policy "predictions_insert_own" on predictions for insert
-  with check (
-    auth.uid() = user_id
-    and exists (
-      select 1 from matches m
-      where m.id = match_id and public.match_is_open(m)
-    )
-  );
-create policy "predictions_update_own" on predictions for update
-  using (auth.uid() = user_id)
-  with check (
-    exists (
-      select 1 from matches m
-      where m.id = match_id and public.match_is_open(m)
-    )
-  );
-
--- Bracket predictions
-create policy "bracket_select_all" on bracket_predictions for select using (true);
-create policy "bracket_insert_own" on bracket_predictions for insert
-  with check (auth.uid() = user_id and public.bracket_is_open());
-create policy "bracket_update_own" on bracket_predictions for update
-  using (auth.uid() = user_id)
-  with check (public.bracket_is_open());
-
--- Third place
-create policy "third_select_all" on third_place_predictions for select using (true);
-create policy "third_insert_own" on third_place_predictions for insert
-  with check (auth.uid() = user_id and public.bracket_is_open());
-create policy "third_update_own" on third_place_predictions for update
-  using (auth.uid() = user_id)
-  with check (public.bracket_is_open());
-
--- Champion
-create policy "champion_select_all" on champion_predictions for select using (true);
-create policy "champion_insert_own" on champion_predictions for insert
-  with check (auth.uid() = user_id and public.bracket_is_open());
-create policy "champion_update_own" on champion_predictions for update
-  using (auth.uid() = user_id)
-  with check (public.bracket_is_open());
-
--- Official results
-create policy "group_standings_select_all" on group_standings for select using (true);
-create policy "group_standings_admin" on group_standings for all using (public.is_admin());
-
-create policy "tournament_settings_select_all" on tournament_settings for select using (true);
-create policy "tournament_settings_admin" on tournament_settings for all using (public.is_admin());
-
--- Seed teams (Mundial 2026 — 12 grupos x 4)
 insert into teams (name, "group", flag_emoji) values
 ('México', 'A', '🇲🇽'), ('Sudáfrica', 'A', '🇿🇦'), ('Corea del Sur', 'A', '🇰🇷'), ('UEFA Playoff D', 'A', '🏳️'),
 ('Canadá', 'B', '🇨🇦'), ('Qatar', 'B', '🇶🇦'), ('Suiza', 'B', '🇨🇭'), ('UEFA Playoff A', 'B', '🏳️'),
@@ -233,6 +144,3 @@ insert into teams (name, "group", flag_emoji) values
 
 insert into group_standings (group_name) values
 ('A'),('B'),('C'),('D'),('E'),('F'),('G'),('H'),('I'),('J'),('K'),('L');
-
--- Después de crear usuarios en Auth, marcar admin:
--- update profiles set is_admin = true, name = 'Ernesto', avatar_initials = 'EL' where email = 'ernloza@gmail.com';

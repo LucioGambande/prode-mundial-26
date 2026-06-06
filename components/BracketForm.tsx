@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase";
+import { saveBracketAction } from "@/lib/actions/game";
 import { GROUPS, THIRD_PLACE_COUNT } from "@/lib/constants";
 import { isBracketLocked } from "@/lib/scoring";
 import type {
@@ -13,18 +13,15 @@ import type {
 
 export default function BracketForm({
   teams,
-  userId,
   bracketPredictions,
   thirdPlacePrediction,
   championPrediction,
 }: {
   teams: Team[];
-  userId: string;
   bracketPredictions: BracketPrediction[];
   thirdPlacePrediction?: ThirdPlacePrediction;
   championPrediction?: ChampionPrediction;
 }) {
-  const supabase = createClient();
   const locked = isBracketLocked();
 
   const teamsByGroup = useMemo(() => {
@@ -64,9 +61,7 @@ export default function BracketForm({
   function toggleThird(teamId: string) {
     if (locked) return;
     setThirdIds((current) => {
-      if (current.includes(teamId)) {
-        return current.filter((id) => id !== teamId);
-      }
+      if (current.includes(teamId)) return current.filter((id) => id !== teamId);
       if (current.length >= THIRD_PLACE_COUNT) return current;
       return [...current, teamId];
     });
@@ -84,24 +79,6 @@ export default function BracketForm({
         setMessage(`Completá 1° y 2° del grupo ${group}`);
         return;
       }
-
-      const existing = bracketPredictions.find((b) => b.group_name === group);
-      const payload = {
-        user_id: userId,
-        group_name: group,
-        predicted_first_id: pick.first,
-        predicted_second_id: pick.second,
-      };
-
-      const { error } = existing
-        ? await supabase.from("bracket_predictions").update(payload).eq("id", existing.id)
-        : await supabase.from("bracket_predictions").insert(payload);
-
-      if (error) {
-        setSaving(false);
-        setMessage(error.message);
-        return;
-      }
     }
 
     if (thirdIds.length !== THIRD_PLACE_COUNT) {
@@ -116,30 +93,9 @@ export default function BracketForm({
       return;
     }
 
-    const thirdPayload = { user_id: userId, team_ids: thirdIds };
-    const { error: thirdError } = thirdPlacePrediction
-      ? await supabase
-          .from("third_place_predictions")
-          .update(thirdPayload)
-          .eq("id", thirdPlacePrediction.id)
-      : await supabase.from("third_place_predictions").insert(thirdPayload);
-
-    if (thirdError) {
-      setSaving(false);
-      setMessage(thirdError.message);
-      return;
-    }
-
-    const championPayload = { user_id: userId, team_id: championId };
-    const { error: championError } = championPrediction
-      ? await supabase
-          .from("champion_predictions")
-          .update(championPayload)
-          .eq("id", championPrediction.id)
-      : await supabase.from("champion_predictions").insert(championPayload);
-
+    const result = await saveBracketAction({ groupPicks, thirdIds, championId });
     setSaving(false);
-    setMessage(championError ? championError.message : "Bracket guardado");
+    setMessage(result.error ?? "Bracket guardado");
   }
 
   return (
@@ -157,7 +113,6 @@ export default function BracketForm({
             <div key={group} className="rounded-2xl border border-zinc-200 bg-white p-4">
               <h3 className="mb-3 font-semibold">Grupo {group}</h3>
               <div className="space-y-2">
-                <label className="block text-sm text-zinc-600">1° puesto</label>
                 <select
                   disabled={locked}
                   value={groupPicks[group].first}
@@ -169,14 +124,13 @@ export default function BracketForm({
                   }
                   className="w-full rounded-lg border border-zinc-200 px-3 py-2"
                 >
-                  <option value="">Elegir...</option>
+                  <option value="">1° puesto...</option>
                   {teamsByGroup.get(group)?.map((team) => (
                     <option key={team.id} value={team.id}>
                       {team.flag_emoji} {team.name}
                     </option>
                   ))}
                 </select>
-                <label className="block text-sm text-zinc-600">2° puesto</label>
                 <select
                   disabled={locked}
                   value={groupPicks[group].second}
@@ -188,7 +142,7 @@ export default function BracketForm({
                   }
                   className="w-full rounded-lg border border-zinc-200 px-3 py-2"
                 >
-                  <option value="">Elegir...</option>
+                  <option value="">2° puesto...</option>
                   {teamsByGroup.get(group)?.map((team) => (
                     <option key={team.id} value={team.id}>
                       {team.flag_emoji} {team.name}
@@ -203,27 +157,24 @@ export default function BracketForm({
 
       <section className="space-y-4">
         <h2 className="text-xl font-bold text-emerald-900">
-          8 terceros clasificados ({thirdIds.length}/{THIRD_PLACE_COUNT})
+          8 terceros ({thirdIds.length}/{THIRD_PLACE_COUNT})
         </h2>
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-          {teams.map((team) => {
-            const selected = thirdIds.includes(team.id);
-            return (
-              <button
-                key={team.id}
-                type="button"
-                disabled={locked}
-                onClick={() => toggleThird(team.id)}
-                className={`rounded-xl border px-3 py-2 text-left text-sm ${
-                  selected
-                    ? "border-emerald-600 bg-emerald-50"
-                    : "border-zinc-200 bg-white"
-                }`}
-              >
-                {team.flag_emoji} {team.name}
-              </button>
-            );
-          })}
+          {teams.map((team) => (
+            <button
+              key={team.id}
+              type="button"
+              disabled={locked}
+              onClick={() => toggleThird(team.id)}
+              className={`rounded-xl border px-3 py-2 text-left text-sm ${
+                thirdIds.includes(team.id)
+                  ? "border-emerald-600 bg-emerald-50"
+                  : "border-zinc-200 bg-white"
+              }`}
+            >
+              {team.flag_emoji} {team.name}
+            </button>
+          ))}
         </div>
       </section>
 
@@ -244,16 +195,14 @@ export default function BracketForm({
         </select>
       </section>
 
-      <div className="flex items-center gap-4">
-        <button
-          onClick={save}
-          disabled={locked || saving}
-          className="rounded-full bg-emerald-600 px-6 py-3 font-medium text-white disabled:bg-zinc-300"
-        >
-          {saving ? "Guardando..." : "Guardar bracket"}
-        </button>
-        {message && <p className="text-sm text-emerald-700">{message}</p>}
-      </div>
+      <button
+        onClick={save}
+        disabled={locked || saving}
+        className="rounded-full bg-emerald-600 px-6 py-3 font-medium text-white disabled:bg-zinc-300"
+      >
+        {saving ? "Guardando..." : "Guardar bracket"}
+      </button>
+      {message && <p className="text-sm text-emerald-700">{message}</p>}
     </div>
   );
 }

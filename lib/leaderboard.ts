@@ -4,10 +4,10 @@ import type {
   LeaderboardEntry,
   Match,
   Prediction,
-  Profile,
-  Team,
+  User,
   ThirdPlacePrediction,
 } from "./types";
+import { initials } from "./auth";
 import {
   calculateBracketPoints,
   calculateChampionPoints,
@@ -22,7 +22,7 @@ interface GroupStanding {
 }
 
 export function buildLeaderboard(
-  profiles: Profile[],
+  users: User[],
   matches: Match[],
   predictions: Prediction[],
   bracketPredictions: BracketPrediction[],
@@ -37,12 +37,12 @@ export function buildLeaderboard(
     groupStandings.map((s) => [s.group_name, s]),
   );
 
-  return profiles
-    .map((profile) => {
-      const userPredictions = predictions.filter((p) => p.user_id === profile.id);
-      const userBracket = bracketPredictions.filter((b) => b.user_id === profile.id);
-      const userThird = thirdPlacePredictions.find((t) => t.user_id === profile.id);
-      const userChampion = championPredictions.find((c) => c.user_id === profile.id);
+  return users
+    .map((user) => {
+      const userPredictions = predictions.filter((p) => p.user_id === user.id);
+      const userBracket = bracketPredictions.filter((b) => b.user_id === user.id);
+      const userThird = thirdPlacePredictions.find((t) => t.user_id === user.id);
+      const userChampion = championPredictions.find((c) => c.user_id === user.id);
 
       let matchPoints = 0;
       for (const prediction of userPredictions) {
@@ -82,9 +82,9 @@ export function buildLeaderboard(
         : 0;
 
       return {
-        id: profile.id,
-        name: profile.name,
-        avatar_initials: profile.avatar_initials,
+        id: user.id,
+        name: user.name,
+        avatar_initials: initials(user.name),
         match_points: matchPoints,
         bracket_points: bracketPoints,
         third_place_points: thirdPlacePoints,
@@ -94,8 +94,4 @@ export function buildLeaderboard(
       };
     })
     .sort((a, b) => b.total_points - a.total_points || a.name.localeCompare(b.name));
-}
-
-export function teamMap(teams: Team[]) {
-  return new Map(teams.map((t) => [t.id, t]));
 }

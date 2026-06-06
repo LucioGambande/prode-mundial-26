@@ -1,46 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase";
+import { usePathname } from "next/navigation";
+import type { SessionPayload } from "@/lib/auth";
+import { logoutAction } from "@/lib/actions/auth";
 
 const links = [
   { href: "/", label: "Posiciones" },
-  { href: "/mi-prode", label: "Mi prode", auth: true },
-  { href: "/partidos", label: "Partidos", auth: true },
-  { href: "/bracket", label: "Bracket", auth: true },
-  { href: "/admin", label: "Admin" },
+  { href: "/partidos", label: "Partidos" },
+  { href: "/bracket", label: "Bracket" },
+  { href: "/admin", label: "Admin", admin: true },
+  { href: "/admin/usuarios", label: "Usuarios", admin: true },
 ];
 
-export default function Nav({
-  userName,
-  isAdmin,
-}: {
-  userName?: string | null;
-  isAdmin?: boolean;
-}) {
+export default function Nav({ user }: { user?: SessionPayload | null }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const supabase = createClient();
-
-  async function logout() {
-    await supabase.auth.signOut();
-    router.push("/");
-    router.refresh();
-  }
+  const isAdmin = user?.role === "admin";
 
   return (
     <header className="border-b border-emerald-900/20 bg-emerald-950 text-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-emerald-300">
-            Prode
-          </p>
+          <p className="text-xs uppercase tracking-[0.2em] text-emerald-300">Prode</p>
           <h1 className="text-lg font-bold">Mundial 2026</h1>
         </div>
         <nav className="flex flex-wrap items-center gap-2">
           {links
-            .filter((l) => (!("auth" in l) || userName) && (l.href !== "/admin" || isAdmin))
+            .filter((l) => !l.admin || isAdmin)
             .map((link) => (
               <Link
                 key={link.href}
@@ -54,21 +40,15 @@ export default function Nav({
                 {link.label}
               </Link>
             ))}
-          {userName ? (
-            <>
-              <Link
-                href="/mi-prode"
-                className="rounded-full border border-emerald-700 px-3 py-1.5 text-sm text-emerald-100 hover:bg-emerald-900"
-              >
-                {userName}
-              </Link>
+          {user ? (
+            <form action={logoutAction}>
               <button
-                onClick={logout}
+                type="submit"
                 className="rounded-full border border-emerald-700 px-3 py-1.5 text-sm text-emerald-100 hover:bg-emerald-900"
               >
-                Salir
+                {user.name} · Salir
               </button>
-            </>
+            </form>
           ) : (
             <Link
               href="/login"

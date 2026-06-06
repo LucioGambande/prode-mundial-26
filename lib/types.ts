@@ -7,13 +7,15 @@ export type MatchPhase =
   | "final";
 
 export type MatchStatus = "upcoming" | "locked" | "finished";
+export type UserRole = "admin" | "player";
 
-export interface Profile {
+export interface User {
   id: string;
   email: string;
   name: string;
-  avatar_initials: string;
-  is_admin: boolean;
+  role: UserRole;
+  must_change_password: boolean;
+  created_at: string;
 }
 
 export interface Team {
