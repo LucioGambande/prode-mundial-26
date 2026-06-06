@@ -1,5 +1,6 @@
 import Nav from "@/components/Nav";
 import LeaderboardTable from "@/components/LeaderboardTable";
+import PageHeader from "@/components/PageHeader";
 import { buildLeaderboard } from "@/lib/leaderboard";
 import { getCurrentUser } from "@/lib/session";
 import { getDb } from "@/lib/supabase";
@@ -44,9 +45,7 @@ export default async function HomePage() {
     <>
       <Nav user={user} />
       <main className="mx-auto max-w-6xl px-4 py-8">
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold text-emerald-950">Tabla de posiciones</h2>
-        </div>
+        <PageHeader title="Tabla de posiciones" subtitle="Puntos por partidos, bracket y campeón" />
         <LeaderboardTable entries={entries} />
       </main>
     </>

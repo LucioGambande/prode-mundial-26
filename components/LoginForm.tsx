@@ -8,38 +8,25 @@ export default function LoginForm({
   error?: string;
 }) {
   return (
-    <form
-      action="/api/login"
-      method="POST"
-      className="mx-auto w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm"
-    >
+    <form action="/api/login" method="POST" className="card w-full max-w-md">
       <input type="hidden" name="redirect" value={redirect} />
-      <h1 className="text-2xl font-bold text-emerald-900">Entrar al prode</h1>
-      <p className="mt-2 text-sm text-zinc-500">Email y contraseña</p>
+      <h1 className="page-title text-2xl">Entrar al prode</h1>
+      <p className="page-subtitle">Ingresá con tu email y contraseña</p>
 
       <div className="mt-6 space-y-4">
-        <input
-          name="email"
-          type="email"
-          required
-          placeholder="Email"
-          className="w-full rounded-lg border border-zinc-200 px-3 py-2"
-        />
-        <input
-          name="password"
-          type="password"
-          required
-          placeholder="Contraseña"
-          className="w-full rounded-lg border border-zinc-200 px-3 py-2"
-        />
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-zinc-700">Email</label>
+          <input name="email" type="email" required placeholder="tu@email.com" className="input" />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-zinc-700">Contraseña</label>
+          <input name="password" type="password" required placeholder="••••••••" className="input" />
+        </div>
       </div>
 
-      {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+      {error && <p className="alert-error">{error}</p>}
 
-      <button
-        type="submit"
-        className="mt-6 w-full rounded-full bg-emerald-600 py-3 font-medium text-white"
-      >
+      <button type="submit" className="btn-primary mt-6 w-full">
         Entrar
       </button>
     </form>

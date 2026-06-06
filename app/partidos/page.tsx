@@ -1,5 +1,6 @@
 import Nav from "@/components/Nav";
 import MatchCard from "@/components/MatchCard";
+import PageHeader from "@/components/PageHeader";
 import { getCurrentUser } from "@/lib/session";
 import { getDb } from "@/lib/supabase";
 
@@ -20,11 +21,9 @@ export default async function PartidosPage() {
     <>
       <Nav user={user} />
       <main className="mx-auto max-w-3xl space-y-4 px-4 py-8">
-        <h2 className="text-3xl font-bold text-emerald-950">Partidos</h2>
+        <PageHeader title="Partidos" subtitle="Cargá tus pronósticos hasta 1 hora antes de cada partido" />
         {(matches ?? []).length === 0 ? (
-          <p className="rounded-xl bg-zinc-100 px-4 py-6 text-zinc-600">
-            Todavía no hay partidos cargados.
-          </p>
+          <p className="card text-zinc-600">Todavía no hay partidos cargados.</p>
         ) : (
           (matches ?? []).map((match) => (
             <MatchCard

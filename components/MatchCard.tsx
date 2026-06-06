@@ -22,7 +22,7 @@ function ScoreInput({
       value={value}
       disabled={disabled}
       onChange={(e) => onChange(Number(e.target.value))}
-      className="w-14 rounded-lg border border-zinc-200 px-2 py-2 text-center font-bold disabled:bg-zinc-100"
+      className="input input-sm w-16 text-center font-bold"
     />
   );
 }
@@ -55,54 +55,54 @@ export default function MatchCard({
   }
 
   return (
-    <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between gap-2 text-xs uppercase tracking-wide text-zinc-500">
+    <article className="card">
+      <div className="mb-4 flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
         <span>{match.phase.replaceAll("_", " ")}</span>
         <span>{new Date(match.match_date).toLocaleString("es-AR")}</span>
       </div>
 
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
         <div className="text-right">
-          <p className="text-2xl">{home?.flag_emoji}</p>
-          <p className="font-semibold">{home?.name}</p>
+          <p className="text-3xl">{home?.flag_emoji}</p>
+          <p className="mt-1 font-semibold text-zinc-900">{home?.name}</p>
         </div>
 
         <div className="flex items-center gap-2">
           {finished ? (
-            <p className="text-2xl font-bold">
+            <p className="text-3xl font-bold text-zinc-900">
               {match.home_score} - {match.away_score}
             </p>
           ) : (
             <>
               <ScoreInput value={homeScore} onChange={setHomeScore} disabled={locked || saving} />
-              <span className="font-bold text-zinc-400">:</span>
+              <span className="text-xl font-bold text-zinc-400">:</span>
               <ScoreInput value={awayScore} onChange={setAwayScore} disabled={locked || saving} />
             </>
           )}
         </div>
 
         <div>
-          <p className="text-2xl">{away?.flag_emoji}</p>
-          <p className="font-semibold">{away?.name}</p>
+          <p className="text-3xl">{away?.flag_emoji}</p>
+          <p className="mt-1 font-semibold text-zinc-900">{away?.name}</p>
         </div>
       </div>
 
       {!finished && (
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-xs text-zinc-500">
+        <div className="mt-5 flex items-center justify-between gap-3 border-t border-zinc-100 pt-4">
+          <p className="text-sm text-zinc-600">
             {locked ? "Bloqueado" : "Editable hasta 1h antes del partido"}
           </p>
-          <button
-            onClick={save}
-            disabled={locked || saving}
-            className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:bg-zinc-300"
-          >
+          <button onClick={save} disabled={locked || saving} className="btn-primary">
             {saving ? "Guardando..." : "Guardar"}
           </button>
         </div>
       )}
 
-      {message && <p className="mt-2 text-xs text-emerald-700">{message}</p>}
+      {message && (
+        <p className={`mt-3 text-sm ${message === "Guardado" ? "text-emerald-700" : "text-red-600"}`}>
+          {message}
+        </p>
+      )}
     </article>
   );
 }

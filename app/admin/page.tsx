@@ -1,6 +1,7 @@
 import Nav from "@/components/Nav";
 import AdminMatchForm from "@/components/AdminMatchForm";
 import AdminResultForm from "@/components/AdminResultForm";
+import PageHeader from "@/components/PageHeader";
 import { getCurrentUser } from "@/lib/session";
 import { getDb } from "@/lib/supabase";
 
@@ -20,12 +21,14 @@ export default async function AdminPage() {
     <>
       <Nav user={user} />
       <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
-        <div>
-          <h2 className="text-3xl font-bold text-emerald-950">Admin — Partidos</h2>
-          <p className="text-zinc-600">
-            Usuarios en <a href="/admin/usuarios" className="text-emerald-700 underline">/admin/usuarios</a>
-          </p>
-        </div>
+        <PageHeader
+          title="Admin — Partidos"
+          subtitle="Cargar fixtures y resultados oficiales"
+        >
+          <a href="/admin/usuarios" className="btn-secondary">
+            Gestionar usuarios
+          </a>
+        </PageHeader>
         <AdminMatchForm teams={teams ?? []} />
         <AdminResultForm matches={matches ?? []} teams={teams ?? []} />
       </main>

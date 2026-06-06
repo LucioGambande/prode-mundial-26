@@ -1,5 +1,6 @@
 import Nav from "@/components/Nav";
 import BracketForm from "@/components/BracketForm";
+import PageHeader from "@/components/PageHeader";
 import { getCurrentUser } from "@/lib/session";
 import { getDb } from "@/lib/supabase";
 
@@ -24,7 +25,10 @@ export default async function BracketPage() {
     <>
       <Nav user={user} />
       <main className="mx-auto max-w-6xl px-4 py-8">
-        <h2 className="mb-6 text-3xl font-bold text-emerald-950">Bracket previo</h2>
+        <PageHeader
+          title="Bracket previo"
+          subtitle="1° y 2° por grupo, 8 terceros y campeón — se bloquea el 11/06/2026"
+        />
         <BracketForm
           teams={teams ?? []}
           bracketPredictions={bracketPredictions ?? []}

@@ -8,32 +8,31 @@ function CreateUserForm() {
   const [state, formAction, pending] = useActionState(createUserAction, null);
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-6">
-      <h2 className="text-lg font-bold">Crear jugador</h2>
-      <form action={formAction} className="mt-4 grid gap-3 md:grid-cols-2">
-        <input name="name" required placeholder="Nombre" className="rounded-lg border px-3 py-2" />
-        <input name="email" type="email" required placeholder="Email" className="rounded-lg border px-3 py-2" />
+    <div className="card">
+      <h2 className="card-title">Crear jugador</h2>
+      <p className="mt-1 text-sm text-zinc-600">
+        El jugador deberá cambiar la contraseña en su primer ingreso.
+      </p>
+      <form action={formAction} className="mt-5 grid gap-4 md:grid-cols-2">
+        <input name="name" required placeholder="Nombre" className="input" />
+        <input name="email" type="email" required placeholder="Email" className="input" />
         <input
           name="tempPassword"
           required
           minLength={8}
-          placeholder="Contraseña temporal"
-          className="rounded-lg border px-3 py-2 md:col-span-2"
+          placeholder="Contraseña temporal (mín. 8 caracteres)"
+          className="input md:col-span-2"
         />
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-full bg-emerald-600 px-5 py-2 text-white md:col-span-2 disabled:bg-zinc-300"
-        >
+        <button type="submit" disabled={pending} className="btn-primary md:col-span-2">
           {pending ? "Creando..." : "Crear usuario"}
         </button>
       </form>
-      {state?.error && <p className="mt-3 text-sm text-red-600">{state.error}</p>}
+      {state?.error && <p className="alert-error">{state.error}</p>}
       {state?.success && (
-        <div className="mt-4 rounded-xl bg-emerald-50 p-4 text-sm">
-          <p className="font-semibold">{state.name} creado</p>
-          <p>Email: {state.email}</p>
-          <p>Contraseña temporal: {state.tempPassword}</p>
+        <div className="alert-success">
+          <p className="font-semibold">{state.name} creado correctamente</p>
+          <p className="mt-1">Email: {state.email}</p>
+          <p>Contraseña temporal: <strong>{state.tempPassword}</strong></p>
         </div>
       )}
     </div>
@@ -44,18 +43,20 @@ function ResetRow({ user }: { user: User }) {
   const [state, formAction, pending] = useActionState(resetPasswordAction, null);
 
   return (
-    <tr className="border-t border-zinc-100">
-      <td className="px-4 py-3 font-medium">{user.name}</td>
-      <td className="px-4 py-3 text-sm text-zinc-600">{user.email}</td>
-      <td className="px-4 py-3">
-        <span className={`rounded-full px-2 py-0.5 text-xs ${user.role === "admin" ? "bg-emerald-100 text-emerald-800" : "bg-zinc-100"}`}>
+    <tr>
+      <td className="font-semibold text-zinc-900">{user.name}</td>
+      <td>{user.email}</td>
+      <td>
+        <span className={`badge ${user.role === "admin" ? "badge-admin" : "badge-player"}`}>
           {user.role}
         </span>
       </td>
-      <td className="px-4 py-3 text-sm">
-        {user.must_change_password ? "Debe cambiar" : "OK"}
+      <td>
+        <span className={`badge ${user.must_change_password ? "badge-warn" : "badge-ok"}`}>
+          {user.must_change_password ? "Debe cambiar" : "OK"}
+        </span>
       </td>
-      <td className="px-4 py-3">
+      <td>
         <form action={formAction} className="flex flex-wrap items-center gap-2">
           <input type="hidden" name="userId" value={user.id} />
           <input
@@ -63,20 +64,18 @@ function ResetRow({ user }: { user: User }) {
             required
             minLength={8}
             placeholder="Nueva temp."
-            className="w-28 rounded border px-2 py-1 text-sm"
+            className="input input-sm w-36"
           />
-          <button
-            type="submit"
-            disabled={pending}
-            className="rounded-full border px-3 py-1 text-xs hover:bg-zinc-50 disabled:opacity-50"
-          >
-            Resetear
+          <button type="submit" disabled={pending} className="btn-secondary">
+            {pending ? "..." : "Resetear"}
           </button>
         </form>
         {state?.success && (
-          <p className="mt-1 text-xs text-emerald-700">Nueva: {state.tempPassword}</p>
+          <p className="mt-2 text-xs font-medium text-emerald-700">
+            Nueva contraseña: {state.tempPassword}
+          </p>
         )}
-        {state?.error && <p className="mt-1 text-xs text-red-600">{state.error}</p>}
+        {state?.error && <p className="alert-error mt-2">{state.error}</p>}
       </td>
     </tr>
   );
@@ -86,15 +85,15 @@ export default function UsersAdmin({ users }: { users: User[] }) {
   return (
     <div className="space-y-6">
       <CreateUserForm />
-      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-emerald-50 text-emerald-900">
+      <div className="table-shell">
+        <table>
+          <thead>
             <tr>
-              <th className="px-4 py-3">Nombre</th>
-              <th className="px-4 py-3">Email</th>
-              <th className="px-4 py-3">Rol</th>
-              <th className="px-4 py-3">Contraseña</th>
-              <th className="px-4 py-3">Reset</th>
+              <th>Nombre</th>
+              <th>Email</th>
+              <th>Rol</th>
+              <th>Contraseña</th>
+              <th>Reset</th>
             </tr>
           </thead>
           <tbody>

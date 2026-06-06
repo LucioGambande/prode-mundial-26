@@ -1,5 +1,6 @@
 import Nav from "@/components/Nav";
 import UsersAdmin from "@/components/UsersAdmin";
+import PageHeader from "@/components/PageHeader";
 import { getCurrentUser } from "@/lib/session";
 import { getDb } from "@/lib/supabase";
 
@@ -12,10 +13,10 @@ export default async function AdminUsuariosPage() {
     <>
       <Nav user={user} />
       <main className="mx-auto max-w-5xl space-y-6 px-4 py-8">
-        <div>
-          <h2 className="text-3xl font-bold text-emerald-950">Usuarios</h2>
-          <p className="text-zinc-600">Crear jugadores y resetear contraseñas temporales</p>
-        </div>
+        <PageHeader
+          title="Usuarios"
+          subtitle="Crear jugadores y resetear contraseñas temporales"
+        />
         <UsersAdmin users={users ?? []} />
       </main>
     </>

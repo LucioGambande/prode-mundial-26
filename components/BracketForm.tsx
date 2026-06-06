@@ -101,18 +101,18 @@ export default function BracketForm({
   return (
     <div className="space-y-8">
       {locked && (
-        <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
           El bracket se bloqueó el 11 de junio de 2026.
         </div>
       )}
 
       <section className="space-y-4">
-        <h2 className="text-xl font-bold text-emerald-900">1° y 2° por grupo</h2>
+        <h2 className="card-title text-xl">1° y 2° por grupo</h2>
         <div className="grid gap-4 md:grid-cols-2">
           {GROUPS.map((group) => (
-            <div key={group} className="rounded-2xl border border-zinc-200 bg-white p-4">
-              <h3 className="mb-3 font-semibold">Grupo {group}</h3>
-              <div className="space-y-2">
+            <div key={group} className="card !p-4">
+              <h3 className="mb-3 font-semibold text-zinc-900">Grupo {group}</h3>
+              <div className="space-y-3">
                 <select
                   disabled={locked}
                   value={groupPicks[group].first}
@@ -122,7 +122,7 @@ export default function BracketForm({
                       [group]: { ...prev[group], first: e.target.value },
                     }))
                   }
-                  className="w-full rounded-lg border border-zinc-200 px-3 py-2"
+                  className="input"
                 >
                   <option value="">1° puesto...</option>
                   {teamsByGroup.get(group)?.map((team) => (
@@ -140,7 +140,7 @@ export default function BracketForm({
                       [group]: { ...prev[group], second: e.target.value },
                     }))
                   }
-                  className="w-full rounded-lg border border-zinc-200 px-3 py-2"
+                  className="input"
                 >
                   <option value="">2° puesto...</option>
                   {teamsByGroup.get(group)?.map((team) => (
@@ -156,7 +156,7 @@ export default function BracketForm({
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-bold text-emerald-900">
+        <h2 className="card-title text-xl">
           8 terceros ({thirdIds.length}/{THIRD_PLACE_COUNT})
         </h2>
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
@@ -166,10 +166,10 @@ export default function BracketForm({
               type="button"
               disabled={locked}
               onClick={() => toggleThird(team.id)}
-              className={`rounded-xl border px-3 py-2 text-left text-sm ${
+              className={`rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition ${
                 thirdIds.includes(team.id)
-                  ? "border-emerald-600 bg-emerald-50"
-                  : "border-zinc-200 bg-white"
+                  ? "border-emerald-600 bg-emerald-50 text-emerald-900"
+                  : "border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50"
               }`}
             >
               {team.flag_emoji} {team.name}
@@ -179,12 +179,12 @@ export default function BracketForm({
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-bold text-emerald-900">Campeón (+10 pts)</h2>
+        <h2 className="card-title text-xl">Campeón (+10 pts)</h2>
         <select
           disabled={locked}
           value={championId}
           onChange={(e) => setChampionId(e.target.value)}
-          className="w-full max-w-md rounded-lg border border-zinc-200 px-3 py-2"
+          className="input max-w-md"
         >
           <option value="">Elegir campeón...</option>
           {teams.map((team) => (
@@ -198,11 +198,15 @@ export default function BracketForm({
       <button
         onClick={save}
         disabled={locked || saving}
-        className="rounded-full bg-emerald-600 px-6 py-3 font-medium text-white disabled:bg-zinc-300"
+        className="btn-primary"
       >
         {saving ? "Guardando..." : "Guardar bracket"}
       </button>
-      {message && <p className="text-sm text-emerald-700">{message}</p>}
+      {message && (
+        <p className={`text-sm font-medium ${message === "Bracket guardado" ? "text-emerald-700" : "text-red-600"}`}>
+          {message}
+        </p>
+      )}
     </div>
   );
 }
